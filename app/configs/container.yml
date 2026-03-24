@@ -1,0 +1,7 @@
+attrs:
+  solve_tictactoe_evt:
+    module_path: app.events.tictactoe
+    class_name: SolveTicTacToe
+  print_results_evt:
+    module_path: app.events.tictactoe
+    class_name: PrintResults
