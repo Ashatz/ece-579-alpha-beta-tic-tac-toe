@@ -1,0 +1,19 @@
+logging:
+  formatters:
+    default:
+      name: Default Formatter
+      format: '%(message)s'
+  handlers:
+    console:
+      name: Console Handler
+      module_path: logging
+      class_name: StreamHandler
+      level: WARNING
+      formatter: default
+  loggers:
+    default:
+      name: Default Logger
+      level: WARNING
+      is_root: true
+      handlers:
+        - console

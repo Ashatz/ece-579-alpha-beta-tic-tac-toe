@@ -1,0 +1,6 @@
+errors:
+  INVALID_INPUT:
+    name: Invalid Input
+    message:
+      - lang: en_US
+        text: 'Invalid input: {board}'

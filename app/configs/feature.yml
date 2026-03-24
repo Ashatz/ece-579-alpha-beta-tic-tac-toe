@@ -1,0 +1,11 @@
+features:
+  tictactoe:
+    solve:
+      name: Solve Tic-Tac-Toe
+      description: Run Minimax and Alpha-Beta pruning on a tic-tac-toe board
+      commands:
+        - attribute_id: solve_tictactoe_evt
+          name: Solve the board with Minimax and Alpha-Beta
+          data_key: results
+        - attribute_id: print_results_evt
+          name: Print formatted results to stdout

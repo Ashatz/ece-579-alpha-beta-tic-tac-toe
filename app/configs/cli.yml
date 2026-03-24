@@ -1,0 +1,12 @@
+cli:
+  cmds:
+    tictactoe:
+      solve:
+        group_key: tictactoe
+        key: solve
+        description: Solve a tic-tac-toe board using Minimax and Alpha-Beta pruning.
+        args:
+          - name_or_flags:
+              - board
+            description: A 9-character board string (X, O, _).
+        name: Solve Tic-Tac-Toe Command
