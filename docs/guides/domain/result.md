@@ -110,16 +110,27 @@ print(result.transpositions) # []
 
 **Module:** `app/mappers/result.py`
 
-Mutable aggregate extending `GameResult` with cutoff collection.
+Mutable aggregate extending `GameResult` with cutoff, killer move, and transposition table management. Each algorithm variant gets its own aggregate instance.
 
 ### Methods
 
-- **`record_cutoff(board: List[int], cutoff_type: str)`** — Creates a `Cutoff` via `DomainObject.new()` and appends it to `self.cutoffs`. This method is passed as the `on_cutoff` callback into `AlphaBeta.run()`.
+- **`record_cutoff(board, cutoff_type)`** — Creates a `Cutoff` domain object and appends to `self.cutoffs`.
+- **`record_killer(depth, move)`** — Creates a `KillerMove` domain object and appends to `self.killers`.
+- **`get_killers_at_depth(depth)`** — Returns killer move indices at the given depth.
+- **`store_transposition(canonical_board, value, depth)`** — Stores an entry in the internal `_transposition_table` dict and appends a `TranspositionEntry` to `self.transpositions`.
+- **`lookup_transposition(canonical_board)`** — Returns the stored value or `None`.
+- **`increment_transposition_hit()`** — Increments the `_transposition_hits` counter.
 
 ### Properties
 
-- **`alpha_cuts`** — Count of cutoffs where `cutoff_type == 'Alpha cut'`.
-- **`beta_cuts`** — Count of cutoffs where `cutoff_type == 'Beta cut'`.
+- **`alpha_cuts`** — Count of alpha cutoffs.
+- **`beta_cuts`** — Count of beta cutoffs.
+- **`transposition_hits`** — Number of transposition table hits.
+
+### Internal State
+
+- **`_transposition_table`** — `Dict[Tuple[int, ...], int]` for O(1) canonical board lookups.
+- **`_transposition_hits`** — `int` counter, exposed via the `transposition_hits` property.
 
 ### Usage
 
@@ -129,14 +140,12 @@ from app.mappers.result import GameResultAggregate
 
 aggregate = Aggregate.new(
     GameResultAggregate,
-    value=0,
-    nodes=0,
-    algorithm='alphabeta',
-    cutoffs=[],
+    value=0, nodes=0, algorithm='alphabeta',
+    cutoffs=[], killers=[], transpositions=[],
     validate=False,
 )
 
-# Pass record_cutoff as the on_cutoff callback to AlphaBeta
+# Pass aggregate methods as callbacks to AlphaBeta
 from app.utils.alphabeta import AlphaBeta
 from app.utils.board_utils import BoardUtils
 
