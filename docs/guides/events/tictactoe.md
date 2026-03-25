@@ -6,7 +6,7 @@ Two chained domain events that together implement the solver pipeline. `SolveTic
 
 ## SolveTicTacToe
 
-Orchestrates both search algorithms and collects results.
+Orchestrates four search algorithm variants and collects results.
 
 ### Parameters
 
@@ -23,17 +23,19 @@ Invalid input raises `INVALID_INPUT` (defined in `app/configs/error.yml`).
 ### Execution Flow
 
 1. Parse the board string via `BoardUtils.parse_board()`.
-2. Run `Minimax.run()` → create a `GameResultAggregate` with the minimax results.
-3. Create a second `GameResultAggregate` for alpha-beta (with placeholder values).
-4. Run `AlphaBeta.run()`, passing `aggregate.record_cutoff` as the `on_cutoff` callback. The aggregate collects `Cutoff` domain objects during the search.
-5. Update the alpha-beta aggregate with final `value` and `nodes` via `set_attribute()`.
+2. **Minimax** — Run `Minimax.run()` → create a `GameResultAggregate`.
+3. **Plain Alpha-Beta** — Create a `GameResultAggregate`, run `AlphaBeta.run()` with `on_cutoff` only.
+4. **AB + Killer Heuristic** — Create a `GameResultAggregate`, run `AlphaBeta.run()` with `on_cutoff`, `on_killer`, `get_killers`.
+5. **AB + Killer + Transposition** — Create a `GameResultAggregate`, run `AlphaBeta.run()` with all callbacks (cutoff, killer, and transposition).
 6. Return a results dict:
 
 ```python
 {
-    'board': List[int],                      # parsed board
-    'minimax_result': GameResultAggregate,   # minimax outcome
-    'alphabeta_result': GameResultAggregate, # alphabeta outcome with cutoffs
+    'board': List[int],                            # parsed board
+    'minimax_result': GameResultAggregate,         # minimax outcome
+    'alphabeta_result': GameResultAggregate,       # plain AB with cutoffs
+    'killer_result': GameResultAggregate,          # AB + killer heuristic
+    'transposition_result': GameResultAggregate,   # AB + killer + transposition
 }
 ```
 
@@ -60,8 +62,10 @@ Reads the results dict from request data and prints formatted output per homewor
 
 1. Initial board (3 rows)
 2. Minimax results: `Game Result: {value}` + `Moves considered without alpha-beta pruning: {nodes}`
-3. For each cutoff in the alphabeta result: board (3 rows) + cutoff type, separated by blank lines
-4. Alpha-beta summary: `Game Result: {value}` + `Moves considered with alpha-beta pruning: {nodes}` + `Alpha cuts: {n}` + `Beta cuts: {n}`
+3. For each cutoff in the plain AB result: board (3 rows) + cutoff type, separated by blank lines
+4. Plain AB summary: `Game Result: {value}` + `Moves considered with alpha-beta pruning: {nodes}` + `Alpha cuts: {n}` + `Beta cuts: {n}`
+5. Killer heuristic summary: `Game Result: {value}` + `Moves considered with killer heuristic: {nodes}` + `Alpha cuts: {n}` + `Beta cuts: {n}`
+6. Rotation invariance summary: `Game Result: {value}` + `Moves considered with rotation invariance: {nodes}` + `Transposition hits: {n}` + `Alpha cuts: {n}` + `Beta cuts: {n}`
 
 ### Container Registration
 

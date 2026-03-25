@@ -18,7 +18,7 @@ from ..mappers.result import GameResultAggregate
 # ** event: solve_tic_tac_toe
 class SolveTicTacToe(DomainEvent):
     '''
-    Domain event that runs both minimax and alpha-beta searches.
+    Domain event that runs four search algorithm variants and collects results.
     '''
 
     # * method: execute
@@ -31,7 +31,7 @@ class SolveTicTacToe(DomainEvent):
         :type board: str
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
-        :return: A dict with board, minimax_result, and alphabeta_result.
+        :return: A dict with board and all four algorithm results.
         :rtype: Dict[str, Any]
         '''
 
@@ -54,7 +54,7 @@ class SolveTicTacToe(DomainEvent):
         # Parse the board string into a list of integers.
         cells = BoardUtils.parse_board(board)
 
-        # Run plain minimax search.
+        # --- 1. Plain Minimax ---
         mm_value, mm_nodes = Minimax.run(cells)
 
         # Create a GameResultAggregate for the minimax result.
@@ -66,36 +66,81 @@ class SolveTicTacToe(DomainEvent):
             cutoffs=[],
         )
 
-        # Create a GameResultAggregate for the alpha-beta result.
-        # Initialize with placeholder values; will be updated after search.
+        # --- 2. Plain Alpha-Beta (cutoffs only) ---
         ab_result = Aggregate.new(
             GameResultAggregate,
-            value=0,
-            nodes=0,
-            algorithm='alphabeta',
-            cutoffs=[],
+            value=0, nodes=0, algorithm='alphabeta',
+            cutoffs=[], killers=[], transpositions=[],
             validate=False,
         )
 
-        # Run alpha-beta search with the aggregate's record_cutoff as callback.
-        ab_value, ab_nodes = AlphaBeta.run(cells, on_cutoff=ab_result.record_cutoff)
+        # Run plain alpha-beta with cutoff recording only.
+        ab_value, ab_nodes = AlphaBeta.run(
+            cells,
+            on_cutoff=ab_result.record_cutoff,
+        )
 
-        # Update the alpha-beta aggregate with final values.
+        # Update the plain alpha-beta aggregate with final values.
         ab_result.set_attribute('value', ab_value)
         ab_result.set_attribute('nodes', ab_nodes)
+
+        # --- 3. Alpha-Beta + Killer Heuristic ---
+        killer_result = Aggregate.new(
+            GameResultAggregate,
+            value=0, nodes=0, algorithm='alphabeta_killer',
+            cutoffs=[], killers=[], transpositions=[],
+            validate=False,
+        )
+
+        # Run alpha-beta with killer heuristic (no transposition table).
+        k_value, k_nodes = AlphaBeta.run(
+            cells,
+            on_cutoff=killer_result.record_cutoff,
+            on_killer=killer_result.record_killer,
+            get_killers=killer_result.get_killers_at_depth,
+        )
+
+        # Update the killer heuristic aggregate with final values.
+        killer_result.set_attribute('value', k_value)
+        killer_result.set_attribute('nodes', k_nodes)
+
+        # --- 4. Alpha-Beta + Killer + Transposition Table ---
+        trans_result = Aggregate.new(
+            GameResultAggregate,
+            value=0, nodes=0, algorithm='alphabeta_killer_trans',
+            cutoffs=[], killers=[], transpositions=[],
+            validate=False,
+        )
+
+        # Run alpha-beta with killer heuristic and transposition table.
+        t_value, t_nodes = AlphaBeta.run(
+            cells,
+            on_cutoff=trans_result.record_cutoff,
+            on_killer=trans_result.record_killer,
+            get_killers=trans_result.get_killers_at_depth,
+            lookup_transposition=trans_result.lookup_transposition,
+            store_transposition=trans_result.store_transposition,
+            on_transposition_hit=trans_result.increment_transposition_hit,
+        )
+
+        # Update the transposition aggregate with final values.
+        trans_result.set_attribute('value', t_value)
+        trans_result.set_attribute('nodes', t_nodes)
 
         # Return results dict for downstream events.
         return dict(
             board=cells,
             minimax_result=minimax_result,
             alphabeta_result=ab_result,
+            killer_result=killer_result,
+            transposition_result=trans_result,
         )
 
 
 # ** event: print_results
 class PrintResults(DomainEvent):
     '''
-    Domain event that formats and prints search results.
+    Domain event that formats and prints search results for all four algorithm variants.
     '''
 
     # * method: execute
@@ -104,7 +149,7 @@ class PrintResults(DomainEvent):
         '''
         Format and print the solver results to stdout.
 
-        :param results: A dict containing board, minimax_result, and alphabeta_result.
+        :param results: A dict containing board and all four algorithm results.
         :type results: Dict[str, Any]
         :param kwargs: Additional keyword arguments.
         :type kwargs: dict
@@ -116,6 +161,8 @@ class PrintResults(DomainEvent):
         board = results['board']
         minimax_result: GameResultAggregate = results['minimax_result']
         ab_result: GameResultAggregate = results['alphabeta_result']
+        killer_result: GameResultAggregate = results['killer_result']
+        trans_result: GameResultAggregate = results['transposition_result']
 
         # Print the initial board.
         print(BoardUtils.format_board(board))
@@ -124,18 +171,31 @@ class PrintResults(DomainEvent):
         print(f'Game Result: {minimax_result.value}')
         print(f'Moves considered without alpha-beta pruning: {minimax_result.nodes}')
 
-        # Print each alpha-beta cutoff (board + cutoff type).
+        # Print each plain alpha-beta cutoff (board + cutoff type).
         for i, cutoff in enumerate(ab_result.cutoffs):
             if i > 0:
                 print()
             print(BoardUtils.format_board(cutoff.board))
             print(cutoff.cutoff_type)
 
-        # Print alpha-beta summary stats.
+        # Print plain alpha-beta summary stats.
         print(f'Game Result: {ab_result.value}')
         print(f'Moves considered with alpha-beta pruning: {ab_result.nodes}')
         print(f'Alpha cuts: {ab_result.alpha_cuts}')
         print(f'Beta cuts: {ab_result.beta_cuts}')
+
+        # Print killer heuristic summary stats.
+        print(f'Game Result: {killer_result.value}')
+        print(f'Moves considered with killer heuristic: {killer_result.nodes}')
+        print(f'Alpha cuts: {killer_result.alpha_cuts}')
+        print(f'Beta cuts: {killer_result.beta_cuts}')
+
+        # Print rotation invariance (transposition table) summary stats.
+        print(f'Game Result: {trans_result.value}')
+        print(f'Moves considered with rotation invariance: {trans_result.nodes}')
+        print(f'Transposition hits: {trans_result.transposition_hits}')
+        print(f'Alpha cuts: {trans_result.alpha_cuts}')
+        print(f'Beta cuts: {trans_result.beta_cuts}')
 
         # Return empty string to suppress CLI 'None' output.
         return ''
