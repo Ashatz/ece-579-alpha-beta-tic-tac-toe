@@ -153,3 +153,74 @@ class BoardUtils:
 
         # X moves when counts are equal, O moves otherwise.
         return 1 if x_count == o_count else -1
+
+    # * method: rotate_90 (static)
+    @staticmethod
+    def rotate_90(board: List[int]) -> List[int]:
+        '''
+        Rotate the board 90 degrees clockwise.
+
+        :param board: The current board state as a flat list of 9 integers.
+        :type board: List[int]
+        :return: The rotated board.
+        :rtype: List[int]
+        '''
+
+        # Apply the 90-degree clockwise index mapping.
+        return [board[i] for i in (6, 3, 0, 7, 4, 1, 8, 5, 2)]
+
+    # * method: rotate_180 (static)
+    @staticmethod
+    def rotate_180(board: List[int]) -> List[int]:
+        '''
+        Rotate the board 180 degrees.
+
+        :param board: The current board state as a flat list of 9 integers.
+        :type board: List[int]
+        :return: The rotated board.
+        :rtype: List[int]
+        '''
+
+        # Apply the 180-degree index mapping (reverse the list).
+        return [board[i] for i in (8, 7, 6, 5, 4, 3, 2, 1, 0)]
+
+    # * method: rotate_270 (static)
+    @staticmethod
+    def rotate_270(board: List[int]) -> List[int]:
+        '''
+        Rotate the board 270 degrees clockwise (90 degrees counter-clockwise).
+
+        :param board: The current board state as a flat list of 9 integers.
+        :type board: List[int]
+        :return: The rotated board.
+        :rtype: List[int]
+        '''
+
+        # Apply the 270-degree clockwise index mapping.
+        return [board[i] for i in (2, 5, 8, 1, 4, 7, 0, 3, 6)]
+
+    # * method: get_canonical_board (static)
+    @staticmethod
+    def get_canonical_board(board: List[int]) -> Tuple[int, ...]:
+        '''
+        Return the canonical (rotation-invariant) representation of the board.
+
+        Generates all four rotations (0, 90, 180, 270 degrees) and returns
+        the lexicographically smallest as a tuple for use as a hashable key.
+
+        :param board: The current board state.
+        :type board: List[int]
+        :return: The canonical board as a tuple of integers.
+        :rtype: Tuple[int, ...]
+        '''
+
+        # Generate all four rotations.
+        rotations = [
+            board,
+            BoardUtils.rotate_90(board),
+            BoardUtils.rotate_180(board),
+            BoardUtils.rotate_270(board),
+        ]
+
+        # Return the lexicographically smallest rotation as a tuple.
+        return tuple(min(rotations))
