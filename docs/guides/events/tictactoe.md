@@ -95,10 +95,16 @@ The `data_key: results` on the first command stores its return value into `reque
 
 **Module:** `app/mappers/result.py`
 
-The mutable aggregate that bridges the domain and utility layers. Key members:
+The mutable aggregate that bridges the domain and utility layers. Each algorithm variant gets its own aggregate instance. Key members:
 
-- **`record_cutoff(board, cutoff_type)`** — Creates a `Cutoff` domain object and appends it to `self.cutoffs`. This method is passed as the `on_cutoff` callback into `AlphaBeta.run()`.
-- **`alpha_cuts`** (property) — Count of cutoffs where `cutoff_type == 'Alpha cut'`.
-- **`beta_cuts`** (property) — Count of cutoffs where `cutoff_type == 'Beta cut'`.
+- **`record_cutoff(board, cutoff_type)`** — Creates a `Cutoff` domain object and appends to `self.cutoffs`.
+- **`record_killer(depth, move)`** — Creates a `KillerMove` domain object and appends to `self.killers`.
+- **`get_killers_at_depth(depth)`** — Returns killer move indices at the given depth.
+- **`store_transposition(canonical_board, value, depth)`** — Stores an entry in the internal `_transposition_table` dict and appends a `TranspositionEntry` to `self.transpositions`.
+- **`lookup_transposition(canonical_board)`** — Returns the stored value or `None`.
+- **`increment_transposition_hit()`** — Increments the `_transposition_hits` counter.
+- **`alpha_cuts`** (property) — Count of alpha cutoffs.
+- **`beta_cuts`** (property) — Count of beta cutoffs.
+- **`transposition_hits`** (property) — Number of transposition table hits.
 
 This keeps the aggregate as the single point of mutation — the utility never modifies domain state directly.
