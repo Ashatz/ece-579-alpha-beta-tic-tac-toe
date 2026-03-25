@@ -67,6 +67,43 @@ BoardUtils.current_player([1, 0, 0, 0, 0, 0, 0, 0, 0])
 # -1 (O's turn — X has 1, O has 0)
 ```
 
+### `rotate_90(board: List[int]) -> List[int]`
+
+Rotates the board 90 degrees clockwise. Uses the index mapping `(6, 3, 0, 7, 4, 1, 8, 5, 2)`.
+
+```python
+# X in top-left corner, O in bottom-left:
+board = [1, 0, 0, 0, 0, 0, -1, 0, 0]
+BoardUtils.rotate_90(board)
+# [-1, 0, 1, 0, 0, 0, 0, 0, 0]  (O now top-left, X top-right)
+```
+
+### `rotate_180(board: List[int]) -> List[int]`
+
+Rotates the board 180 degrees. Uses the index mapping `(8, 7, 6, 5, 4, 3, 2, 1, 0)` (reverse).
+
+### `rotate_270(board: List[int]) -> List[int]`
+
+Rotates the board 270 degrees clockwise (90° counter-clockwise). Uses the index mapping `(2, 5, 8, 1, 4, 7, 0, 3, 6)`.
+
+### `get_canonical_board(board: List[int]) -> Tuple[int, ...]`
+
+Returns the canonical (rotation-invariant) representation of the board. Generates all four rotations (0°, 90°, 180°, 270°) and returns the lexicographically smallest as a `Tuple[int, ...]`. The tuple is hashable and suitable for use as a transposition table key.
+
+```python
+board = [1, 0, 0, 0, 0, 0, -1, 0, 0]
+
+# All four rotations produce the same canonical key:
+assert BoardUtils.get_canonical_board(board) \
+    == BoardUtils.get_canonical_board(BoardUtils.rotate_90(board)) \
+    == BoardUtils.get_canonical_board(BoardUtils.rotate_180(board)) \
+    == BoardUtils.get_canonical_board(BoardUtils.rotate_270(board))
+
+# The result is a hashable tuple:
+canonical = BoardUtils.get_canonical_board(board)
+assert isinstance(canonical, tuple)
+```
+
 ## Alias
 
 `BoardUtils` is also exported as `Board` from `app.utils`:
