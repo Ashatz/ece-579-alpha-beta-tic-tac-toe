@@ -164,12 +164,17 @@ class PrintResults(DomainEvent):
         killer_result: GameResultAggregate = results['killer_result']
         trans_result: GameResultAggregate = results['transposition_result']
 
-        # Print the initial board.
-        print(BoardUtils.format_board(board))
+        # Section divider.
+        divider = '-----------------------------------------'
 
-        # Print minimax results.
+        # Print minimax section.
+        print('Running without alpha-beta pruning')
         print(f'Game Result: {minimax_result.value}')
         print(f'Moves considered without alpha-beta pruning: {minimax_result.nodes}')
+
+        # Print plain alpha-beta section.
+        print(divider)
+        print('Running with alpha-beta pruning')
 
         # Print each plain alpha-beta cutoff (board + cutoff type).
         for i, cutoff in enumerate(ab_result.cutoffs):
@@ -184,18 +189,40 @@ class PrintResults(DomainEvent):
         print(f'Alpha cuts: {ab_result.alpha_cuts}')
         print(f'Beta cuts: {ab_result.beta_cuts}')
 
+        # Print killer heuristic section.
+        print(divider)
+        print('Running with the killer heuristic')
+
+        # Print each killer heuristic cutoff (board + cutoff type).
+        for i, cutoff in enumerate(killer_result.cutoffs):
+            if i > 0:
+                print()
+            print(BoardUtils.format_board(cutoff.board))
+            print(cutoff.cutoff_type)
+
         # Print killer heuristic summary stats.
         print(f'Game Result: {killer_result.value}')
-        print(f'Moves considered with killer heuristic: {killer_result.nodes}')
+        print(f'Moves considered with alpha-beta pruning: {killer_result.nodes}')
         print(f'Alpha cuts: {killer_result.alpha_cuts}')
         print(f'Beta cuts: {killer_result.beta_cuts}')
 
-        # Print rotation invariance (transposition table) summary stats.
+        # Print rotation invariance section.
+        print(divider)
+        print('Running with the killer heuristic and using rotation invariance.')
+
+        # Print each transposition cutoff (board + cutoff type).
+        for i, cutoff in enumerate(trans_result.cutoffs):
+            if i > 0:
+                print()
+            print(BoardUtils.format_board(cutoff.board))
+            print(cutoff.cutoff_type)
+
+        # Print rotation invariance summary stats.
         print(f'Game Result: {trans_result.value}')
-        print(f'Moves considered with rotation invariance: {trans_result.nodes}')
-        print(f'Transposition hits: {trans_result.transposition_hits}')
+        print(f'Moves considered with alpha-beta pruning: {trans_result.nodes}')
         print(f'Alpha cuts: {trans_result.alpha_cuts}')
         print(f'Beta cuts: {trans_result.beta_cuts}')
+        print(f'Rotation invariance invoked: {trans_result.transposition_hits}')
 
         # Return empty string to suppress CLI 'None' output.
         return ''
