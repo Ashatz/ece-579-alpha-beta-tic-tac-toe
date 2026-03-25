@@ -44,11 +44,11 @@ ___
 
 ```
 $ python tictactoe_cli.py tictactoe solve O_XOXX___
-O_X
-OXX
-___
+Running without alpha-beta pruning
 Game Result: -1
 Moves considered without alpha-beta pruning: 26
+-----------------------------------------
+Running with alpha-beta pruning
 OOX
 OXX
 _X_
@@ -77,21 +77,73 @@ Game Result: -1
 Moves considered with alpha-beta pruning: 17
 Alpha cuts: 1
 Beta cuts: 4
+-----------------------------------------
+Running with the killer heuristic
+OOX
+OXX
+_X_
+Alpha cut
+
+OXX
+OXX
+_OO
+Beta cut
+
+O_X
+OXX
+_O_
+Beta cut
+
+OXX
+OXX
+_OO
+Beta cut
+
+O_X
+OXX
+__O
+Beta cut
 Game Result: -1
-Moves considered with killer heuristic: 17
+Moves considered with alpha-beta pruning: 17
 Alpha cuts: 1
 Beta cuts: 4
+-----------------------------------------
+Running with the killer heuristic and using rotation invariance.
+OOX
+OXX
+_X_
+Alpha cut
+
+OXX
+OXX
+_OO
+Beta cut
+
+O_X
+OXX
+_O_
+Beta cut
+
+OXX
+OXX
+_OO
+Beta cut
+
+O_X
+OXX
+__O
+Beta cut
 Game Result: -1
-Moves considered with rotation invariance: 17
-Transposition hits: 0
+Moves considered with alpha-beta pruning: 17
 Alpha cuts: 1
 Beta cuts: 4
+Rotation invariance invoked: 0
 ```
 
 - **Game Result**: `1` = X wins, `-1` = O wins, `0` = draw
 - **Moves considered**: Total nodes evaluated during search
 - **Cutoff blocks**: Each shows the board state where pruning occurred, followed by the cut type
-- **Transposition hits**: Number of positions found in the rotation-invariant transposition table
+- **Rotation invariance invoked**: Number of positions found in the rotation-invariant transposition table
 
 ### Performance (Empty Board)
 
