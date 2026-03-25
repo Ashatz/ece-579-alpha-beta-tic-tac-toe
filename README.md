@@ -1,8 +1,14 @@
-# Tic-Tac-Toe Solver — Minimax & Alpha-Beta Pruning
+# Tic-Tac-Toe Solver — Minimax, Alpha-Beta, Killer Heuristic & Rotation Invariance
 
 **ECE 479/579 Homework 4** · Built with [Tiferet](https://github.com/greatstrength/tiferet) v2.0
 
-A clean, domain-driven Tic-Tac-Toe solver that compares plain Minimax search against Alpha-Beta pruning. The solver reports the game result, total nodes evaluated by each algorithm, and every pruning cutoff with its board state — demonstrating the efficiency gains of Alpha-Beta over exhaustive Minimax.
+A clean, domain-driven Tic-Tac-Toe solver that compares four search strategies: plain Minimax, Alpha-Beta pruning, Alpha-Beta with Killer Heuristic, and Alpha-Beta with Killer Heuristic + Rotation-Invariant Transposition Table. The solver reports the game result, total nodes evaluated by each variant, pruning cutoffs, transposition hits, and alpha/beta cut counts — demonstrating the incremental efficiency gains of each optimization.
+
+## Submission Information
+
+- **Programming language:** Python 3.10+
+- **Development environment:** Visual Studio Code and [Warp](https://www.warp.dev/) (AI-powered terminal)
+- **How to compile and run:** See [Quick Start](#quick-start) below. Python is an interpreted language — no compilation step is required.
 
 ## Quick Start
 
@@ -53,10 +59,31 @@ OXX
 _OO
 Beta cut
 
-...
+O_X
+OXX
+_O_
+Beta cut
 
+OXX
+OXX
+_OO
+Beta cut
+
+O_X
+OXX
+__O
+Beta cut
 Game Result: -1
 Moves considered with alpha-beta pruning: 17
+Alpha cuts: 1
+Beta cuts: 4
+Game Result: -1
+Moves considered with killer heuristic: 17
+Alpha cuts: 1
+Beta cuts: 4
+Game Result: -1
+Moves considered with rotation invariance: 17
+Transposition hits: 0
 Alpha cuts: 1
 Beta cuts: 4
 ```
@@ -64,6 +91,16 @@ Beta cuts: 4
 - **Game Result**: `1` = X wins, `-1` = O wins, `0` = draw
 - **Moves considered**: Total nodes evaluated during search
 - **Cutoff blocks**: Each shows the board state where pruning occurred, followed by the cut type
+- **Transposition hits**: Number of positions found in the rotation-invariant transposition table
+
+### Performance (Empty Board)
+
+The empty board (`_________`) is the worst case for tic-tac-toe search:
+
+- **Minimax:** 549,946 nodes (baseline)
+- **Alpha-Beta:** 18,297 nodes (96.7% reduction)
+- **AB + Killer:** 15,681 nodes (further 14.3% reduction)
+- **AB + Killer + Transposition:** 3,239 nodes (further 79.3% reduction, 728 transposition hits)
 
 ## Architecture
 
@@ -80,21 +117,24 @@ app/
 │   └── logging.yml     # Logging configuration
 ├── domain/             # Read-only domain objects
 │   ├── board.py        # TicTacToeBoard
-│   └── result.py       # Cutoff + GameResult (same bounded context)
+│   └── result.py       # Cutoff, KillerMove, TranspositionEntry, GameResult
 ├── events/             # Domain events (business logic)
 │   └── tictactoe.py    # SolveTicTacToe + PrintResults
 ├── mappers/            # Aggregates (mutable domain extensions)
-│   └── result.py       # GameResultAggregate — collects cutoffs
+│   └── result.py       # GameResultAggregate — collects cutoffs, killers, transpositions
 └── utils/              # Utility classes with static methods (no I/O)
-    ├── board_utils.py  # BoardUtils — parsing, formatting, game logic
+    ├── board_utils.py  # BoardUtils — parsing, formatting, game logic, rotations
     ├── minimax.py      # Minimax — plain recursive search
-    └── alphabeta.py    # AlphaBeta — search with callback-based cutoff capture
+    └── alphabeta.py    # AlphaBeta — search with callback-based state interaction
 ```
 
 ### Design Highlights
 
-- **Utils are side-effect-free classes**: `AlphaBeta.search()` accepts an optional `on_cutoff` callable instead of printing directly. All utility methods are static — no I/O in the computation layer.
-- **Aggregate root pattern**: `GameResultAggregate` owns the cutoff list and provides `record_cutoff()` as the callback injected into the Alpha-Beta utility. Cutoff counts are derived properties.
+- **Utils are side-effect-free classes**: `AlphaBeta.search()` accepts optional callbacks (`on_cutoff`, `on_killer`, `get_killers`, transposition callbacks) instead of managing state directly. All utility methods are static — no I/O in the computation layer.
+- **Aggregate root pattern**: `GameResultAggregate` owns cutoffs, killers, and transpositions. Aggregate methods are passed as callbacks into the Alpha-Beta utility, keeping it as the single point of mutation.
+- **Killer Heuristic**: Records cutoff-causing moves at each depth and reorders successors to try killer moves first.
+- **Rotation-Invariant Transposition Table**: Stores evaluation results using the lexicographically smallest board rotation as a canonical key. Only exact values (no cutoffs) are stored for correctness.
+- **Four-algorithm comparison**: `SolveTicTacToe` runs Minimax, plain AB, AB+Killer, and AB+Killer+Transposition to demonstrate incremental gains.
 - **Chained domain events**: The feature workflow chains `SolveTicTacToe` (computation, stores results via `data_key`) → `PrintResults` (reads results, formats output). Clean separation of computation from presentation.
 - **Tiferet CLI integration**: The CLI is wired entirely through YAML configs — command parsing, feature routing, and dependency injection are handled by the framework.
 
@@ -124,8 +164,28 @@ See `AGENTS.md` for detailed contributor and AI agent guidance.
 ### Guides
 
 - **Utils:** [BoardUtils](docs/guides/utils/board_utils.md) · [Minimax](docs/guides/utils/minimax.md) · [AlphaBeta](docs/guides/utils/alphabeta.md)
-- **Domain:** [TicTacToeBoard](docs/guides/domain/board.md) · [Cutoff & GameResult](docs/guides/domain/result.md)
+- **Domain:** [TicTacToeBoard](docs/guides/domain/board.md) · [Cutoff, KillerMove, TranspositionEntry & GameResult](docs/guides/domain/result.md)
 - **Events:** [SolveTicTacToe & PrintResults](docs/guides/events/tictactoe.md)
+
+## AI Attribution
+
+This project was developed with assistance from two AI agents:
+
+**Grok** (xAI), was responsible for:
+- Providing high-level architectural guidance
+- Helping draft the AGENTS.md documents for v0.1.0 and v0.2.0
+- Designing the overall structure for Killer Heuristic and Rotation-Invariant Transposition Table integration
+- Collaborating on maintaining clean Tiferet DDD patterns and ECE 479/579 course alignment
+
+**Oz** (Claude, Anthropic), running within the [Warp](https://www.warp.dev/) terminal, was responsible for:
+- Drafting Technical Requirements Documents (TRDs) for all v0.1.0 and v0.2.0 stories
+- Implementing all source code, domain objects, mappers, utilities, events, and configuration
+- Writing all documentation (guides, README, AGENTS.md)
+- Verifying acceptance criteria and backward compatibility for each story
+- Creating pull requests with structured commit messages
+- Submitting collaboration reports on each completed issue
+
+All work was reviewed and approved by the human author before merge. Every commit includes a `Co-Authored-By: Oz <oz-agent@warp.dev>` attribution line.
 
 ## License
 
