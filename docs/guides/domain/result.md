@@ -1,8 +1,8 @@
-# Cutoff & GameResult
+# Cutoff, KillerMove, TranspositionEntry & GameResult
 
 **Module:** `app/domain/result.py`
 
-Two domain objects sharing the same module — both are part of the result bounded context.
+Four domain objects sharing the same module — all are part of the result bounded context.
 
 ## Cutoff
 
@@ -28,6 +28,52 @@ cutoff = DomainObject.new(
 
 Cutoffs are not created directly in application code. Instead, `GameResultAggregate.record_cutoff()` creates them during alpha-beta search.
 
+## KillerMove
+
+A read-only domain object representing a killer move recorded during alpha-beta search. A killer move is one that caused a cutoff at a particular depth — used for move ordering on subsequent branches.
+
+### Attributes
+
+- **`depth`** — `IntegerType`, required. The search depth where the cutoff occurred.
+- **`move`** — `IntegerType`, required. The move index (0–8) that caused the cutoff.
+
+### Usage
+
+```python
+from tiferet import DomainObject
+from app.domain.result import KillerMove
+
+killer = DomainObject.new(KillerMove, depth=2, move=4)
+```
+
+KillerMoves are created by `GameResultAggregate.record_killer()` during alpha-beta search.
+
+## TranspositionEntry
+
+A read-only domain object representing an entry in the rotation-invariant transposition table. Stores the evaluated value for a canonical board position.
+
+### Attributes
+
+- **`canonical_board`** — `ListType(IntegerType)`, required. The canonical (lexicographically smallest rotation) board key.
+- **`value`** — `IntegerType`, required. The evaluated minimax value.
+- **`depth`** — `IntegerType`, required. The search depth at which this was evaluated.
+
+### Usage
+
+```python
+from tiferet import DomainObject
+from app.domain.result import TranspositionEntry
+
+entry = DomainObject.new(
+    TranspositionEntry,
+    canonical_board=[0, 0, 0, -1, 0, 0, 1, 0, 0],
+    value=0,
+    depth=1,
+)
+```
+
+TranspositionEntries are created by `GameResultAggregate.store_transposition()` during alpha-beta search.
+
 ## GameResult
 
 A read-only domain object representing the result of a game search algorithm.
@@ -36,8 +82,10 @@ A read-only domain object representing the result of a game search algorithm.
 
 - **`value`** — `IntegerType`, required. The utility value (`1` = X wins, `-1` = O wins, `0` = draw).
 - **`nodes`** — `IntegerType`, required. Total nodes evaluated during search.
-- **`algorithm`** — `StringType`, required. Either `'minimax'` or `'alphabeta'`.
-- **`cutoffs`** — `ListType(ModelType(Cutoff))`, default `[]`. List of pruning events (empty for minimax results).
+- **`algorithm`** — `StringType`, required. Algorithm identifier (e.g., `'minimax'`, `'alphabeta'`, `'alphabeta_killer'`, `'alphabeta_killer_trans'`).
+- **`cutoffs`** — `ListType(ModelType(Cutoff))`, default `[]`. List of pruning events.
+- **`killers`** — `ListType(ModelType(KillerMove))`, default `[]`. List of killer moves recorded.
+- **`transpositions`** — `ListType(ModelType(TranspositionEntry))`, default `[]`. List of transposition table entries stored.
 
 ### Usage
 
@@ -52,8 +100,10 @@ result = DomainObject.new(
     algorithm='minimax',
 )
 
-print(result.value)     # -1
-print(result.cutoffs)   # []
+print(result.value)          # -1
+print(result.cutoffs)        # []
+print(result.killers)        # []
+print(result.transpositions) # []
 ```
 
 ## GameResultAggregate

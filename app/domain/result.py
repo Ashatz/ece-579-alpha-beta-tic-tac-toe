@@ -25,6 +25,37 @@ class Cutoff(DomainObject):
     cutoff_type = StringType(required=True)
 
 
+# ** model: killer_move
+class KillerMove(DomainObject):
+    '''
+    A domain object representing a killer move recorded during alpha-beta search.
+    A killer move is a move that caused a cutoff at a particular depth.
+    '''
+
+    # * attribute: depth
+    depth = IntegerType(required=True)
+
+    # * attribute: move
+    move = IntegerType(required=True)
+
+
+# ** model: transposition_entry
+class TranspositionEntry(DomainObject):
+    '''
+    A domain object representing an entry in the rotation-invariant transposition table.
+    Stores the evaluated value for a canonical board position.
+    '''
+
+    # * attribute: canonical_board
+    canonical_board = ListType(IntegerType, required=True)
+
+    # * attribute: value
+    value = IntegerType(required=True)
+
+    # * attribute: depth
+    depth = IntegerType(required=True)
+
+
 # ** model: game_result
 class GameResult(DomainObject):
     '''
@@ -42,3 +73,9 @@ class GameResult(DomainObject):
 
     # * attribute: cutoffs
     cutoffs = ListType(ModelType(Cutoff), default=[])
+
+    # * attribute: killers
+    killers = ListType(ModelType(KillerMove), default=[])
+
+    # * attribute: transpositions
+    transpositions = ListType(ModelType(TranspositionEntry), default=[])
